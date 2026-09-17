@@ -1,0 +1,8 @@
+For these gas files the following settings were used:
+
+pressure: 1atm
+tempterature: 293.15K
+nE = 20
+emin = 100
+emax = 100000
+ncoll = 10

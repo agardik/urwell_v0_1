@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------
+# Mobility of CO2+ ions in He measured for T=297 K                   
+# Accuracy: 5%            
+# Data from Atomic Data and Nuclear Data Tables 60, 37-95 (1995)
+# L.A.Viehland and E.A.Mason
+# Electric Field in Td (E/N) (multiply by 250 for V)
+# -----------------------------------------------------------------
+ 12  18.4
+ 15  18.2
+ 20  17.9
+ 25  17.5
+ 30  17.2
+ 35  16.8
+ 40  16.5
+ 50  15.7
+ 60  15.1

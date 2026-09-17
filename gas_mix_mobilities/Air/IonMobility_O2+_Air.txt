@@ -1,0 +1,50 @@
+# LXCat, www.lxcat.net
+# Generated on 07 Sep 2026. All rights reserved.
+#
+# RECOMMENDED REFERENCE FORMAT
+# - Viehland database, www.lxcat.net, retrieved on September 7, 2026.
+# Be aware that some databases and solvers can additionally have instructions how to reference corresponding data.
+# Please check below in the headers of databases.
+#
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# DATABASE:         Viehland database
+# PERMLINK:         www.lxcat.net/Viehland
+# DESCRIPTION:      The data here are from the Gaseous Ion Transport and Rate Coefficient #Database, Software Release 4.1
+#                  (March, 2006), as extended and updated on a regular basis.
+# CONTACT:          Larry A. Viehland, Viehland@Chatham.edu
+# HOW TO REFERENCE: L. A. Viehland and C. C. Kirkpatrick, Int. J. Mass Spectrom. Ion Proc. 149/150 (1995) 555.
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#
+# ************************************************************************************************************************
+#
+# COMMENT: Compiled Ko of Viehland & Mason, At. Data. Nucl. Data Tables 60 (1995) 37.
+#
+# ********************************************************** Air **********************************************************
+# SPECIES: O2^+ / Air
+# PROCESS: Mobility (Ko)
+# PARAM.:  Tgas = 300 K
+# UPDATED: 2010-05-14 22:04:20
+# COLUMNS: Reduced electric field (Td) | Mobility (cm2/Vs)
+# -----------------------------
+   5  2.48
+   6  2.48
+   8  2.49
+  10  2.49
+  12  2.49
+  15  2.49
+  20  2.49
+  25  2.49
+  30  2.49
+  35  2.49
+  40  2.49
+  50  2.50
+  60  2.50
+  70  2.51
+  80  2.52
+ 100  2.56
+ 120  2.60
+ 140  2.62
+ 170  2.60
+ 200  2.58
+ 250  2.51
+

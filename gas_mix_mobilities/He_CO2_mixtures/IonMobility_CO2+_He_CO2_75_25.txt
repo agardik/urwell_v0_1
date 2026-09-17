@@ -1,0 +1,6 @@
+# E/N [Td]    K0 [cm2/(V s)]
+# Blanc-law mixture: CO2+ in He (0.7500) + CO2+ in CO2 (0.2500)
+#
+50    4.06
+55    4.03
+60    4.01
