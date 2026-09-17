@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <sstream>
 
 namespace urwell {
 
@@ -23,19 +24,35 @@ void PrintProgressBar(size_t done, size_t total, std::time_t tStart) {
   const std::ios_base::fmtflags oldFlags = std::cout.flags();
   const std::streamsize oldPrecision = std::cout.precision();
 
-  // NOTE: prints a normal newline-terminated line rather than an
-  // in-place "\r" overwrite. Garfield/TrackHeed/Magboltz print a lot of
-  // their own diagnostic messages during the avalanche loop, and those
-  // were constantly clobbering an in-place progress bar before you ever
-  // saw it. A plain scrolling line survives that interleaving -- you'll
-  // see it appear in your terminal/log every progressEvery electrons.
-  std::cout << ">>> PROGRESS [" << std::string(filled, '=')
-            << std::string(barWidth - filled, ' ') << "] "
-            << std::fixed << std::setprecision(1) << (frac * 100.) << "%  "
-            << "electron " << done << "/" << total
-            << std::setprecision(0)
-            << "   elapsed=" << elapsed << "s"
-            << "   ETA=" << eta << "s" << std::endl;
+  // Print an in-place-updating single-line progress bar. This uses '\r'
+  // to return the cursor to the start of the line and flushes the output
+  // so the bar updates in-place instead of spamming the terminal with
+  // many newline-terminated lines. Track the previous printed length and
+  // pad with spaces when the new line is shorter to ensure leftover
+  // characters are cleared.
+  std::ostringstream oss;
+  oss << ">>> PROGRESS [" << std::string(filled, '=')
+      << std::string(barWidth - filled, ' ') << "] "
+      << std::fixed << std::setprecision(1) << (frac * 100.) << "%  "
+      << "electron " << done << "/" << total
+      << std::setprecision(0)
+      << "   elapsed=" << elapsed << "s"
+      << "   ETA=" << eta << "s";
+
+  const std::string out = oss.str();
+  static std::size_t prev_len = 0;
+  const std::size_t pad = prev_len > out.size() ? prev_len - out.size() : 0;
+
+  // Emit carriage return, the content, pad to clear previous longer output,
+  // and flush. If we're complete, terminate the line with a newline.
+  std::cout << '\r' << out << std::string(pad, ' ');
+  if (done == total) {
+    std::cout << std::endl;
+    prev_len = 0;
+  } else {
+    std::cout << std::flush;
+    prev_len = out.size();
+  }
 
   std::cout.flags(oldFlags);
   std::cout.precision(oldPrecision);
