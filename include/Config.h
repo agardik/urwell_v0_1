@@ -5,15 +5,34 @@
 namespace urwell {
 
 // ---------------------------------------------------------------------
-// Performance switches. Flip these off for fast/batch runs where you
-// only care about totals and the induced signal, not the drift-line
-// picture. Storing/plotting every electron and ion trajectory is the
-// main memory/time cost of EnableDriftLines()+EnablePlotting(); the
-// mesh canvas is only meaningful when drift lines are stored, so it's
-// gated by the same flag.
+// Global run mode switches.
+//   kComputePlots = false -> skip all ROOT plotting and all plotting-based
+//   diagnostics. This is the coarse master switch.
+//   kComputeGainHistogram = true -> draw the separate amplification
+//   histogram window.
+//   kComputeDetectorPlots = true -> draw the mesh/signal/field plots.
+//   kStoreDriftLines is only respected when the detector plot path is enabled.
 // ---------------------------------------------------------------------
+inline constexpr bool kComputePlots = true;
+inline constexpr bool kComputeGainHistogram = true;
+inline constexpr bool kComputeDetectorPlots = false;
+inline constexpr bool kComputeAmplificationDistribution = true;
 inline constexpr bool kStoreDriftLines = true;  // EnableDriftLines() on avalanche + ion drift
 inline constexpr bool kShowMeshPlot    = true;  // draw cMesh (geometry + drift lines)
+
+// ---------------------------------------------------------------------
+// Manual electron generation for gain studies.
+// If kUseTrackHeed is false, the code generates kManualElectronCount
+// identical or evenly spaced seed electrons around a reference point.
+// This is convenient for single-point gain distributions, z-scans, or
+// repeated avalanche statistics without needing a full TrackHeed track.
+// ---------------------------------------------------------------------
+inline constexpr int kManualElectronCount = 100;
+inline constexpr double kManualElectronX = 0.;
+inline constexpr double kManualElectronY = 0.;
+inline constexpr double kManualElectronZ0 = 0.01;
+inline constexpr double kManualElectronDeltaZ = 0.;
+inline constexpr double kManualElectronT = 0.;
 
 // Ion drift-line integration step size [cm]. Finer = more accurate but
 // slower; only matters when kStoreDriftLines is true, but also affects
@@ -79,9 +98,9 @@ inline constexpr double kProgressIntervalSeconds = 30.;
 struct ElectronSeed { double x, y, z, t; };
 
 inline const std::vector<ElectronSeed> kManualElectrons = {
-  {0., 0., 0.16, 0.},
-  {0., 0., 0.10, 0.},
-  {0., 0., 0.03, 0.},
+  {kManualElectronX, kManualElectronY, kManualElectronZ0, kManualElectronT},
+  {kManualElectronX, kManualElectronY, 0.10, kManualElectronT},
+  {kManualElectronX, kManualElectronY, 0.03, kManualElectronT},
 };
 
 }  // namespace urwell

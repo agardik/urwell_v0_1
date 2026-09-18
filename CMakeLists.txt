@@ -9,6 +9,7 @@ add_executable(urwell_sim
   src/DetectorSetup.cc
   src/ElectronSource.cc
   src/AvalancheRunner.cc
+  src/AmplificationDistribution.cc
   src/Plotting.cc
 )
 

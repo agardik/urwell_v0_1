@@ -2,11 +2,26 @@
 
 #include "Garfield/TrackHeed.hh"
 
+#include <algorithm>
 #include <iostream>
+#include <vector>
 
 using namespace Garfield;
 
 namespace urwell {
+
+static std::vector<ElectronSeed> GenerateManualSeeds() {
+  std::vector<ElectronSeed> seeds;
+  const int nSeeds = std::max(1, kManualElectronCount);
+  seeds.reserve(static_cast<size_t>(nSeeds));
+
+  for (int i = 0; i < nSeeds; ++i) {
+    const double z = kManualElectronZ0 + i * kManualElectronDeltaZ;
+    seeds.push_back({kManualElectronX, kManualElectronY, z, kManualElectronT});
+  }
+
+  return seeds;
+}
 
 std::vector<ElectronSeed> GenerateElectronSeeds(SimContext& ctx) {
   std::vector<ElectronSeed> seeds;
@@ -29,9 +44,9 @@ std::vector<ElectronSeed> GenerateElectronSeeds(SimContext& ctx) {
     }
     std::cout << "TrackHeed generated " << seeds.size() << " primary electrons.\n";
   } else {
-    std::cout << "Using " << kManualElectrons.size()
+    seeds = GenerateManualSeeds();
+    std::cout << "Using " << seeds.size()
               << " manually seeded electron(s), TrackHeed skipped.\n";
-    seeds = kManualElectrons;
   }
 
   return seeds;

@@ -9,12 +9,35 @@
 #include "TColor.h"
 #include "TGraph.h"
 #include "TAxis.h"
+#include "TH1I.h"
 
+#include <algorithm>
 #include <iostream>
 
 using namespace Garfield;
 
 namespace urwell {
+
+void PlotAmplificationDistribution(const AvalancheResults& results) {
+  if (results.gains.empty()) return;
+
+  const auto minmax = std::minmax_element(results.gains.begin(), results.gains.end());
+  const int minGain = *minmax.first;
+  const int maxGain = *minmax.second;
+  const int nBins = std::max(10, std::min(60, maxGain - minGain + 1));
+
+  TH1I* hGain = new TH1I("hAmplification", "Electron amplification distribution;Gain;Entries",
+                        nBins, minGain - 0.5, maxGain + 0.5);
+  for (const int gain : results.gains) {
+    hGain->Fill(gain);
+  }
+
+  TCanvas* cGain = new TCanvas("cGain", "Electron amplification distribution", 800, 600);
+  hGain->SetLineColor(kBlue + 1);
+  hGain->SetFillColorAlpha(kAzure - 3, 0.4);
+  hGain->Draw("HIST");
+  cGain->Update();
+}
 
 void PlotMesh(SimContext& ctx) {
   if (!kShowMeshPlot) return;

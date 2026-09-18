@@ -5,6 +5,7 @@
 #include "DetectorSetup.h"
 #include "ElectronSource.h"
 #include "AvalancheRunner.h"
+#include "AmplificationDistribution.h"
 #include "Plotting.h"
 
 using namespace urwell;
@@ -27,16 +28,27 @@ int main(int argc, char* argv[]) {
   const std::vector<ElectronSeed> seeds = GenerateElectronSeeds(ctx);
 
   // ---- Run the avalanche/ion-drift loop with a progress bar ----
-  RunAvalancheLoop(ctx, seeds);
+  const AvalancheResults results = RunAvalancheLoop(ctx, seeds);
+
+  // ---- Gain distribution across the simulated electron population ----
+  if (kComputeAmplificationDistribution) {
+    const GainHistogram gainHistogram = ComputeAmplificationDistribution(results);
+    PrintAmplificationDistribution(gainHistogram);
+  }
 
   // ---- Plots and summary diagnostics ----
-  PlotMesh(ctx);
-  PlotSignal(ctx);
-  PlotElectronIonSignals(ctx);
-  PlotDelayedSignal(ctx);
-  PlotIntegratedCharge(ctx);
-  PlotFields(ctx);
-  PrintDelayedSignalSummary(ctx);
+  if (kComputePlots) {
+    if (kComputeGainHistogram) PlotAmplificationDistribution(results);
+    if (kComputeDetectorPlots) {
+      PlotMesh(ctx);
+      PlotSignal(ctx);
+      PlotElectronIonSignals(ctx);
+      PlotDelayedSignal(ctx);
+      PlotIntegratedCharge(ctx);
+      PlotFields(ctx);
+      PrintDelayedSignalSummary(ctx);
+    }
+  }
 
   app.Run(kTRUE);
   return 0;

@@ -1,8 +1,14 @@
 #pragma once
 
+#include "AvalancheRunner.h"
 #include "Context.h"
 
 namespace urwell {
+
+// Histogram of the electron amplification for each seed electron.
+// Draws a separate ROOT canvas so the distribution can be inspected
+// visually in addition to the terminal summary.
+void PlotAmplificationDistribution(const AvalancheResults& results);
 
 // 2D y-z cross section: mesh + avalanche overlaid. No-op unless
 // kShowMeshPlot is set.

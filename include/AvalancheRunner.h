@@ -12,6 +12,7 @@ struct AvalancheResults {
   int niTotal = 0;
   int nIonsDrifted = 0;
   int nIonsFailed = 0;
+  std::vector<int> gains;
 };
 
 // Creates ctx.avalanche and ctx.driftIon (and ctx.viewDrift if

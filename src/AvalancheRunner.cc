@@ -10,13 +10,15 @@ using namespace Garfield;
 namespace urwell {
 
 void SetupAvalanche(SimContext& ctx) {
+  const bool shouldStoreDriftLines = kComputePlots && kComputeDetectorPlots && kStoreDriftLines;
+
   AvalancheMicroscopic* avalanche = new AvalancheMicroscopic();
   avalanche->SetSensor(ctx.sensor);
   avalanche->EnableSignalCalculation();
-  if (kStoreDriftLines) avalanche->EnableDriftLines();
+  if (shouldStoreDriftLines) avalanche->EnableDriftLines();
 
   ViewDrift* viewDrift = nullptr;
-  if (kStoreDriftLines) {
+  if (shouldStoreDriftLines) {
     viewDrift = new ViewDrift();
     avalanche->EnablePlotting(viewDrift);
   }
@@ -25,7 +27,7 @@ void SetupAvalanche(SimContext& ctx) {
   driftIon->SetSensor(ctx.sensor);
   driftIon->SetDistanceSteps(kIonStepSize);
   driftIon->EnableSignalCalculation();
-  if (kStoreDriftLines) {
+  if (shouldStoreDriftLines) {
     driftIon->EnableDriftLines();
     driftIon->EnablePlotting(viewDrift);  // reuse the SAME ViewDrift -> ions show on same plot
   }
@@ -53,6 +55,7 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
     ctx.avalanche->GetAvalancheSize(ne, ni);
     results.neTotal += ne;
     results.niTotal += ni;
+    results.gains.push_back(ne);
   };
 
   const size_t nSeeds = seeds.size();
