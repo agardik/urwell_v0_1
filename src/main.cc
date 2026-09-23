@@ -50,6 +50,10 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  // Write all relevant simulation quantities to a ROOT file for later
+  // analysis / plotting outside the GUI session.
+  WriteRootOutput(results, ctx, "urwell_output.root");
+
   app.Run(kTRUE);
   return 0;
 }

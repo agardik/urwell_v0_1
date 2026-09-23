@@ -10,9 +10,15 @@
 #include "TGraph.h"
 #include "TAxis.h"
 #include "TH1I.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TVectorD.h"
+#include "TNtuple.h"
 
 #include <algorithm>
 #include <iostream>
+#include <string>
+#include <vector>
 
 using namespace Garfield;
 
@@ -203,6 +209,149 @@ void PrintDelayedSignalSummary(SimContext& ctx) {
   std::cout << "Delayed signal: nonzero bins = " << nNonZeroDelayed
             << " / " << nSteps
             << ", summed delayed contribution = " << delayedTotal << "\n";
+}
+
+void WriteRootOutput(const AvalancheResults& results, SimContext& ctx,
+                     const std::string& filename) {
+  if (!ctx.sensor) {
+    std::cerr << "WriteRootOutput: sensor not initialized; cannot write ROOT output.\n";
+    return;
+  }
+
+  TFile rootFile(filename.c_str(), "RECREATE");
+  if (rootFile.IsZombie()) {
+    std::cerr << "WriteRootOutput: failed to create ROOT file '" << filename << "'.\n";
+    return;
+  }
+
+  const int nSteps = ctx.nSteps;
+  const double dt = (ctx.tStop - ctx.tStart) / nSteps;
+
+  TH1I* hGain = new TH1I("hGain", "Gain distribution;Gain;Entries", 100, 0., 1000.);
+  if (!results.gains.empty()) {
+    const auto minmax = std::minmax_element(results.gains.begin(), results.gains.end());
+    const int minGain = *minmax.first;
+    const int maxGain = *minmax.second;
+    const int nBins = std::max(10, std::min(60, maxGain - minGain + 1));
+    delete hGain;
+    hGain = new TH1I("hGain", "Gain distribution;Gain;Entries",
+                    nBins, minGain - 0.5, maxGain + 0.5);
+    for (const int gain : results.gains) {
+      hGain->Fill(gain);
+    }
+  }
+  hGain->Write();
+
+  std::vector<double> times;
+  std::vector<double> totalSignal;
+  std::vector<double> electronSignal;
+  std::vector<double> ionSignal;
+  std::vector<double> delayedSignal;
+  std::vector<double> cumulativeCharge;
+  times.reserve(nSteps);
+  totalSignal.reserve(nSteps);
+  electronSignal.reserve(nSteps);
+  ionSignal.reserve(nSteps);
+  delayedSignal.reserve(nSteps);
+  cumulativeCharge.reserve(nSteps);
+
+  double integratedCharge = 0.;
+  for (int i = 0; i < nSteps; ++i) {
+    const double t = ctx.tStart + (i + 0.5) * dt;
+    const double prompt = ctx.sensor->GetSignal("anode", i);
+    const double electron = ctx.sensor->GetElectronSignal("anode", i);
+    const double ion = ctx.sensor->GetIonSignal("anode", i);
+    const double delayed = kUseDynamicWeightingField
+        ? ctx.sensor->GetDelayedElectronSignal("anode", i) +
+              ctx.sensor->GetDelayedIonSignal("anode", i)
+        : 0.;
+
+    integratedCharge += prompt * dt;
+
+    times.push_back(t);
+    totalSignal.push_back(prompt);
+    electronSignal.push_back(electron);
+    ionSignal.push_back(ion);
+    delayedSignal.push_back(delayed);
+    cumulativeCharge.push_back(integratedCharge);
+  }
+
+  TGraph* gTotalSignal = new TGraph(static_cast<int>(times.size()), times.data(), totalSignal.data());
+  gTotalSignal->SetName("gTotalSignal");
+  gTotalSignal->SetTitle("Total induced signal on anode;Time [ns];Signal [fC/ns]");
+  gTotalSignal->Write();
+
+  TGraph* gElectronSignal = new TGraph(static_cast<int>(times.size()), times.data(), electronSignal.data());
+  gElectronSignal->SetName("gElectronSignal");
+  gElectronSignal->SetTitle("Electron-induced signal;Time [ns];Signal [fC/ns]");
+  gElectronSignal->Write();
+
+  TGraph* gIonSignal = new TGraph(static_cast<int>(times.size()), times.data(), ionSignal.data());
+  gIonSignal->SetName("gIonSignal");
+  gIonSignal->SetTitle("Ion-induced signal;Time [ns];Signal [fC/ns]");
+  gIonSignal->Write();
+
+  TGraph* gDelayedSignal = new TGraph(static_cast<int>(times.size()), times.data(), delayedSignal.data());
+  gDelayedSignal->SetName("gDelayedSignal");
+  gDelayedSignal->SetTitle("Delayed signal;Time [ns];Signal [fC/ns]");
+  gDelayedSignal->Write();
+
+  TGraph* gIntegratedCharge = new TGraph(static_cast<int>(times.size()), times.data(), cumulativeCharge.data());
+  gIntegratedCharge->SetName("gIntegratedCharge");
+  gIntegratedCharge->SetTitle("Integrated charge on anode;Time [ns];Charge [fC]");
+  gIntegratedCharge->Write();
+
+  TTree* tSignals = new TTree("signalTree", "Raw signal samples");
+  double time = 0.;
+  double signalTotal = 0.;
+  double signalElectron = 0.;
+  double signalIon = 0.;
+  double signalDelayed = 0.;
+  double chargeValue = 0.;
+  tSignals->Branch("time", &time, "time/D");
+  tSignals->Branch("signal_total", &signalTotal, "signal_total/D");
+  tSignals->Branch("signal_electron", &signalElectron, "signal_electron/D");
+  tSignals->Branch("signal_ion", &signalIon, "signal_ion/D");
+  tSignals->Branch("signal_delayed", &signalDelayed, "signal_delayed/D");
+  tSignals->Branch("charge", &chargeValue, "charge/D");
+
+  for (int i = 0; i < nSteps; ++i) {
+    time = times.at(i);
+    signalTotal = totalSignal.at(i);
+    signalElectron = electronSignal.at(i);
+    signalIon = ionSignal.at(i);
+    signalDelayed = delayedSignal.at(i);
+    chargeValue = cumulativeCharge.at(i);
+    tSignals->Fill();
+  }
+
+  tSignals->Write();
+
+  TTree* tGain = new TTree("gainTree", "Per-seed gain values");
+  int gain = 0;
+  tGain->Branch("gain", &gain, "gain/I");
+  for (const int g : results.gains) {
+    gain = g;
+    tGain->Fill();
+  }
+  tGain->Write();
+
+  TTree* tMeta = new TTree("meta", "Simulation metadata");
+  int nGainEntries = static_cast<int>(results.gains.size());
+  int nSignals = nSteps;
+  double totalCharge = integratedCharge;
+  double tStart = ctx.tStart;
+  double tStop = ctx.tStop;
+  tMeta->Branch("nGainEntries", &nGainEntries, "nGainEntries/I");
+  tMeta->Branch("nSignals", &nSignals, "nSignals/I");
+  tMeta->Branch("totalCharge", &totalCharge, "totalCharge/D");
+  tMeta->Branch("tStart", &tStart, "tStart/D");
+  tMeta->Branch("tStop", &tStop, "tStop/D");
+  tMeta->Fill();
+  tMeta->Write();
+
+  rootFile.Close();
+  std::cout << "Wrote ROOT output to '" << filename << "'\n";
 }
 
 }  // namespace urwell
