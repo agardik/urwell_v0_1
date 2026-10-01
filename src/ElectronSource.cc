@@ -1,6 +1,7 @@
 #include "ElectronSource.h"
 
 #include "Garfield/TrackHeed.hh"
+#include "geant_hits.h"
 
 #include <algorithm>
 #include <iostream>
@@ -23,18 +24,51 @@ static std::vector<ElectronSeed> GenerateManualSeeds() {
   return seeds;
 }
 
+static std::vector<ElectronSeed> GenerateGeant4Seeds(SimContext& ctx) {
+  std::vector<ElectronSeed> seeds;
+
+  // W-value must come from the already-Initialise()'d gas. SetupDetector()
+  // runs before GenerateElectronSeeds() in main.cc, so this is safe here.
+  const double wValue = ctx.gas->GetW();
+  if (wValue <= 0.) {
+    std::cerr << "GenerateGeant4Seeds: gas->GetW() returned " << wValue
+              << " -- has the gas been Initialise()'d?\n";
+    return seeds;
+  }
+
+  constexpr double kXOffsetMm = 100.;
+  constexpr double kYOffsetMm = 150.;
+  constexpr double kZOffsetMm = 1.5;
+
+  const auto tracks = LoadGeantHitsByTrack(kGeant4HitsFile, kGeant4EventId,
+                                            wValue, kGeant4ClusterSize,
+                                            kXOffsetMm, kYOffsetMm, kZOffsetMm);
+
+  for (const auto& track : tracks) {
+    for (const auto& p : track.points) {
+      seeds.push_back({p.x, p.y, p.z, p.t, p.n_electrons});
+    }
+  }
+
+  std::cout << "GEANT4 hits: " << tracks.size() << " track(s) -> "
+            << seeds.size() << " seed cluster(s) (<= " << kGeant4ClusterSize
+            << " electrons each).\n";
+  return seeds;
+}
+
 std::vector<ElectronSeed> GenerateElectronSeeds(SimContext& ctx) {
   std::vector<ElectronSeed> seeds;
 
-  if (kUseTrackHeed) {
+  if (kUseGeant4Hits) {
+    seeds = GenerateGeant4Seeds(ctx);
+  } else if (kUseTrackHeed) {
     TrackHeed* track = new TrackHeed();
     track->SetParticle("alpha");
-    track->SetKineticEnergy(1e6);  // eV -- e.g. 5.5 MeV, adjust to your source
+    track->SetKineticEnergy(1e6);
     track->SetSensor(ctx.sensor);
 
-    // Starting point and direction of the track [cm], [ns]
     double tx0 = 0., ty0 = 0., tz0 = 0.16, tt0 = 0.;
-    double dx = 0., dy = 0., dz = -1.;  // direction vector, need not be normalized
+    double dx = 0., dy = 0., dz = -1.;
     track->NewTrack(tx0, ty0, tz0, tt0, dx, dy, dz);
 
     for (const auto& cluster : track->GetClusters()) {

@@ -40,22 +40,33 @@ void SetupAvalanche(SimContext& ctx) {
 AvalancheResults RunAvalancheLoop(SimContext& ctx,
                                    const std::vector<ElectronSeed>& seeds) {
   AvalancheResults results;
+  int nSkippedInvalidMedium = 0;
 
-  // ---- Helper: avalanche one electron + drift its resulting ions ----
-  auto processElectron = [&](double x, double y, double z, double t) {
-    ctx.avalanche->AvalancheElectron(x, y, z, t, 0.1, 0, 0, 0);
+  auto processElectron = [&](double x, double y, double z, double t, int nElectrons) {
+    for (int k = 0; k < nElectrons; ++k) {
+      try {
+        ctx.avalanche->AvalancheElectron(x, y, z, t, 0.1, 0, 0, 0);
+      } catch (const Garfield::Exception& e) {
+        // Thrown by AvalancheMicroscopic::TransportElectrons when the
+        // starting point isn't inside a valid medium (e.g. a GEANT4
+        // cluster landing outside the gas region, or right on a mesh
+        // boundary). Skip this electron rather than aborting the run.
+        ++nSkippedInvalidMedium;
+        continue;
+      }
 
-    for (const auto& ion : ctx.avalanche->GetIons()) {
-      const auto& p0 = ion.path.front();
-      bool ok = ctx.driftIon->DriftIon(p0.x, p0.y, p0.z, p0.t);
-      if (ok) ++results.nIonsDrifted; else ++results.nIonsFailed;
+      for (const auto& ion : ctx.avalanche->GetIons()) {
+        const auto& p0 = ion.path.front();
+        bool ok = ctx.driftIon->DriftIon(p0.x, p0.y, p0.z, p0.t);
+        if (ok) ++results.nIonsDrifted; else ++results.nIonsFailed;
+      }
+
+      int ne = 0, ni = 0;
+      ctx.avalanche->GetAvalancheSize(ne, ni);
+      results.neTotal += ne;
+      results.niTotal += ni;
+      results.gains.push_back(ne);
     }
-
-    int ne = 0, ni = 0;
-    ctx.avalanche->GetAvalancheSize(ne, ni);
-    results.neTotal += ne;
-    results.niTotal += ni;
-    results.gains.push_back(ne);
   };
 
   const size_t nSeeds = seeds.size();
@@ -67,7 +78,7 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
 
   for (size_t i = 0; i < nSeeds; ++i) {
     const auto& e = seeds[i];
-    processElectron(e.x, e.y, e.z, e.t);
+    processElectron(e.x, e.y, e.z, e.t, e.nElectrons);
 
     const bool countTrigger = (i + 1) % progressEvery == 0 || i + 1 == nSeeds;
     const bool firstElectron = (i == 0);  // instant feedback that the loop is alive
@@ -84,6 +95,10 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
             << "  ions: " << results.niTotal
             << "  drifted OK: " << results.nIonsDrifted
             << "  failed: " << results.nIonsFailed << "\n";
+  if (nSkippedInvalidMedium > 0) {
+    std::cout << "Skipped " << nSkippedInvalidMedium
+              << " electron(s): starting point not in a valid medium.\n";
+  }
 
   int sizeLimit = ctx.avalanche->GetAvalancheSizeLimit();
   std::cout << "The current avalanche size limit is: " << sizeLimit << std::endl;

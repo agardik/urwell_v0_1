@@ -15,7 +15,7 @@ namespace urwell {
 // ---------------------------------------------------------------------
 inline constexpr bool kComputePlots = true;
 inline constexpr bool kComputeGainHistogram = true;
-inline constexpr bool kComputeDetectorPlots = false;
+inline constexpr bool kComputeDetectorPlots = true;
 inline constexpr bool kComputeAmplificationDistribution = true;
 inline constexpr bool kStoreDriftLines = true;  // EnableDriftLines() on avalanche + ion drift
 inline constexpr bool kShowMeshPlot    = true;  // draw cMesh (geometry + drift lines)
@@ -27,7 +27,7 @@ inline constexpr bool kShowMeshPlot    = true;  // draw cMesh (geometry + drift 
 // This is convenient for single-point gain distributions, z-scans, or
 // repeated avalanche statistics without needing a full TrackHeed track.
 // ---------------------------------------------------------------------
-inline constexpr int kManualElectronCount = 100;
+inline constexpr int kManualElectronCount = 10;
 inline constexpr double kManualElectronX = 0.;
 inline constexpr double kManualElectronY = 0.;
 inline constexpr double kManualElectronZ0 = 0.01;
@@ -92,10 +92,34 @@ inline constexpr bool kUseTrackHeed = false;
 // trigger alone could mean a long silent stretch with no feedback.
 inline constexpr double kProgressIntervalSeconds = 30.;
 
+// ---------------------------------------------------------------------
+// GEANT4-hits electron source switch.
+//   true  -> skip TrackHeed and the manual electron list; read
+//            ionization clusters from a GEANT4 ROOT "hits" file (see
+//            geant_hits.h / LoadGeantHitsByTrack) and avalanche those
+//            instead. Takes priority over kUseTrackHeed if both are true.
+//   false -> fall back to the existing kUseTrackHeed / manual behavior.
+// ---------------------------------------------------------------------
+inline constexpr bool kUseGeant4Hits = false;
+
+// Path to the GEANT4 output ROOT file. Must contain a TTree named
+// "hits" with the branches geant_hits.h expects: event_id, track_id,
+// edep, x/y/z_pos_pre, x/y/z_pos_post, t_pre, t_post, and one of
+// pdg_id / particle_pdg_id / particle_pdg / PDG.
+inline const std::string kGeant4HitsFile = "/Users/alexandrosgardikioti/garfieldpp/urwell_v0_1/geant4root/output0.root";
+
+// Which GEANT4 event to read; -1 reads every event in the file and
+// concatenates all their clusters into one flat seed list.
+inline constexpr int kGeant4EventId = -1;
+
+// Max electron-ion pairs represented by a single ElectronSeed. Larger
+// = fewer, "fatter" seeds (faster, coarser); must be >= 1.
+inline constexpr int kGeant4ClusterSize = 1;
+
 // x, y, z [cm], t [ns] for each manually seeded electron. Only used
 // when kUseTrackHeed is false. Add/remove entries as needed, e.g. to
 // scan across the gap or repeat the same point N times for statistics.
-struct ElectronSeed { double x, y, z, t; };
+struct ElectronSeed { double x, y, z, t; int nElectrons = 1; };
 
 inline const std::vector<ElectronSeed> kManualElectrons = {
   {kManualElectronX, kManualElectronY, kManualElectronZ0, kManualElectronT},

@@ -50,7 +50,7 @@ void SetupDetector(SimContext& ctx) {
   Sensor* sensor = new Sensor();
   sensor->AddComponent(fmReal);
   sensor->AddElectrode(fmReal, "anode");
-  sensor->SetArea(-150e-3, -150e-3, -0.02, 150e-3, 150e-3, 2.0e-1);  // cm
+  sensor->SetArea(-150e1, -150e1, -0.02, 150e1, 150e1, 2.0e-0);  // cm
   sensor->SetTimeWindow(ctx.tStart, (ctx.tStop - ctx.tStart) / ctx.nSteps,
                          ctx.nSteps);
 

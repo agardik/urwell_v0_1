@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "AvalancheRunner.h"
 #include "Context.h"
 
@@ -35,5 +37,10 @@ void PlotFields(SimContext& ctx);
 // Prints the nonzero-bin / summed-contribution delayed-signal
 // diagnostic. No-op unless kUseDynamicWeightingField is set.
 void PrintDelayedSignalSummary(SimContext& ctx);
+
+// Write simulation data to a ROOT file for later analysis.
+void WriteRootOutput(const AvalancheResults& results,
+                     SimContext& ctx,
+                     const std::string& filename = "urwell_output.root");
 
 }  // namespace urwell
