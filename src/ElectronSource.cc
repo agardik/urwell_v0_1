@@ -38,7 +38,7 @@ static std::vector<ElectronSeed> GenerateGeant4Seeds(SimContext& ctx) {
 
   constexpr double kXOffsetMm = 100.;
   constexpr double kYOffsetMm = 150.;
-  constexpr double kZOffsetMm = 1.5;
+  constexpr double kZOffsetMm = 1.55;
 
   const auto tracks = LoadGeantHitsByTrack(kGeant4HitsFile, kGeant4EventId,
                                             wValue, kGeant4ClusterSize,

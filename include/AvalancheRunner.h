@@ -12,6 +12,8 @@ struct AvalancheResults {
   int niTotal = 0;
   int nIonsDrifted = 0;
   int nIonsFailed = 0;
+  int nOutsideMap = 0;    // start point not in a valid drift region (hybrid mode)
+  int nLostInDrift = 0;   // attached / never reached kZSwitch (hybrid mode)
   std::vector<int> gains;
 };
 

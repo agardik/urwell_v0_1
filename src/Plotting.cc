@@ -24,6 +24,34 @@ using namespace Garfield;
 
 namespace urwell {
 
+namespace {
+inline Sensor* DS(SimContext& c) { return kUseHybridDrift ? c.driftSensor : nullptr; }
+
+double SigTotal(SimContext& c, int i) {
+  double s = c.sensor->GetSignal("anode", i);
+  if (auto* d = DS(c)) s += d->GetSignal("anode", i);
+  return s;
+}
+double SigElectron(SimContext& c, int i) {
+  double s = c.sensor->GetElectronSignal("anode", i);
+  if (auto* d = DS(c)) s += d->GetElectronSignal("anode", i);
+  return s;
+}
+double SigIon(SimContext& c, int i) {
+  double s = c.sensor->GetIonSignal("anode", i);
+  if (auto* d = DS(c)) s += d->GetIonSignal("anode", i);
+  return s;
+}
+double SigDelayed(SimContext& c, int i) {
+  double s = c.sensor->GetDelayedElectronSignal("anode", i) +
+             c.sensor->GetDelayedIonSignal("anode", i);
+  if (auto* d = DS(c))
+    s += d->GetDelayedElectronSignal("anode", i) +
+         d->GetDelayedIonSignal("anode", i);
+  return s;
+}
+}  // namespace
+
 void PlotAmplificationDistribution(const AvalancheResults& results) {
   if (results.gains.empty()) return;
 
@@ -72,6 +100,20 @@ void PlotMesh(SimContext& ctx) {
 }
 
 void PlotSignal(SimContext& ctx) {
+  if (kUseHybridDrift) {
+    const int nSteps = ctx.nSteps;
+    TGraph* gr = new TGraph(nSteps);
+    for (int i = 0; i < nSteps; ++i) {
+      const double t = ctx.tStart + (i + 0.5) * (ctx.tStop - ctx.tStart) / nSteps;
+      gr->SetPoint(i, t, SigTotal(ctx, i));
+    }
+    TCanvas* c = new TCanvas("cSignal", "Induced signal on anode", 800, 600);
+    gr->SetTitle("Induced signal on anode (drift MC + avalanche);Time [ns];Signal [fC/ns]");
+    gr->SetLineWidth(2);
+    gr->Draw("AL");
+    c->Update();
+    return;
+  }
   ViewSignal* viewSignal = new ViewSignal();
   viewSignal->SetSensor(ctx.sensor);
   TCanvas* cSignal = new TCanvas("cSignal", "Induced signal on anode", 800, 600);
@@ -95,8 +137,8 @@ void PlotElectronIonSignals(SimContext& ctx) {
   TGraph* grIon = new TGraph(nSteps);
   for (int i = 0; i < nSteps; ++i) {
     const double t = ctx.tStart + (i + 0.5) * (ctx.tStop - ctx.tStart) / nSteps;
-    grElectron->SetPoint(i, t, ctx.sensor->GetElectronSignal("anode", i));
-    grIon->SetPoint(i, t, ctx.sensor->GetIonSignal("anode", i));
+    grElectron->SetPoint(i, t, SigElectron(ctx, i));
+    grIon->SetPoint(i, t, SigIon(ctx, i));
   }
 
   TCanvas* cSignalElectron = new TCanvas("cSignalElectron", "Electron-induced signal", 800, 600);
@@ -129,9 +171,7 @@ void PlotDelayedSignal(SimContext& ctx) {
   TGraph* grDelayed = new TGraph(nSteps);
   for (int i = 0; i < nSteps; ++i) {
     const double t = ctx.tStart + (i + 0.5) * (ctx.tStop - ctx.tStart) / nSteps;
-    const double de = ctx.sensor->GetDelayedElectronSignal("anode", i);
-    const double di = ctx.sensor->GetDelayedIonSignal("anode", i);
-    grDelayed->SetPoint(i, t, de + di);
+    grDelayed->SetPoint(i, t, SigDelayed(ctx, i));
   }
 
   TCanvas* cSignalDelayed = new TCanvas("cSignalDelayed", "Delayed (resistive) signal", 800, 600);
@@ -156,7 +196,7 @@ double PlotIntegratedCharge(SimContext& ctx) {
   double runningCharge = 0.;
   for (int i = 0; i < nSteps; ++i) {
     const double t = ctx.tStart + (i + 0.5) * dt;
-    runningCharge += ctx.sensor->GetSignal("anode", i) * dt;
+    runningCharge += SigTotal(ctx, i) * dt;
     grCharge->SetPoint(i, t, runningCharge);
   }
   const double totalCharge = runningCharge;  // charge at the end of the time window
@@ -201,10 +241,9 @@ void PrintDelayedSignalSummary(SimContext& ctx) {
   double delayedTotal = 0.;
   int nNonZeroDelayed = 0;
   for (int i = 0; i < nSteps; ++i) {
-    const double de = ctx.sensor->GetDelayedElectronSignal("anode", i);
-    const double di = ctx.sensor->GetDelayedIonSignal("anode", i);
-    delayedTotal += (de + di);
-    if (de != 0. || di != 0.) ++nNonZeroDelayed;
+    const double d = SigDelayed(ctx, i);
+    delayedTotal += d;
+    if (d != 0.) ++nNonZeroDelayed;
   }
   std::cout << "Delayed signal: nonzero bins = " << nNonZeroDelayed
             << " / " << nSteps
@@ -258,13 +297,10 @@ void WriteRootOutput(const AvalancheResults& results, SimContext& ctx,
   double integratedCharge = 0.;
   for (int i = 0; i < nSteps; ++i) {
     const double t = ctx.tStart + (i + 0.5) * dt;
-    const double prompt = ctx.sensor->GetSignal("anode", i);
-    const double electron = ctx.sensor->GetElectronSignal("anode", i);
-    const double ion = ctx.sensor->GetIonSignal("anode", i);
-    const double delayed = kUseDynamicWeightingField
-        ? ctx.sensor->GetDelayedElectronSignal("anode", i) +
-              ctx.sensor->GetDelayedIonSignal("anode", i)
-        : 0.;
+    const double prompt = SigTotal(ctx, i);
+    const double electron = SigElectron(ctx, i);
+    const double ion = SigIon(ctx, i);
+    const double delayed = kUseDynamicWeightingField ? SigDelayed(ctx, i) : 0.;
 
     integratedCharge += prompt * dt;
 

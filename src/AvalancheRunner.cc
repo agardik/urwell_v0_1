@@ -32,7 +32,19 @@ void SetupAvalanche(SimContext& ctx) {
     driftIon->EnablePlotting(viewDrift);  // reuse the SAME ViewDrift -> ions show on same plot
   }
 
+  AvalancheMC* driftEl = nullptr;
+  if (kUseHybridDrift) {
+    driftEl = new AvalancheMC();
+    driftEl->SetSensor(ctx.driftSensor);
+    driftEl->SetDistanceSteps(kDriftStepSize);
+    driftEl->EnableSignalCalculation();
+    if (shouldStoreDriftLines) {
+      driftEl->EnableDriftLines();
+      driftEl->EnablePlotting(viewDrift);
+    }
+  }
   ctx.avalanche = avalanche;
+  ctx.driftElectron = driftEl;
   ctx.driftIon = driftIon;
   ctx.viewDrift = viewDrift;
 }
@@ -44,8 +56,23 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
 
   auto processElectron = [&](double x, double y, double z, double t, int nElectrons) {
     for (int k = 0; k < nElectrons; ++k) {
+      double xs = x, ys = y, zs = z, ts = t;
+
+      if (kUseHybridDrift && z > kZSwitch) {
+        const bool ok = ctx.driftElectron->DriftElectron(x, y, z, t);
+        if (!ok || ctx.driftElectron->GetNumberOfElectronEndpoints() == 0) {
+          ++results.nOutsideMap;   // start point not in a valid drift region
+          continue;
+        }
+        double x0, y0, z0, t0, x1, y1, z1, t1;
+        int st = 0;
+        ctx.driftElectron->GetElectronEndpoint(0, x0, y0, z0, t0, x1, y1, z1, t1, st);
+        if (z1 > kZSwitch + 2. * kDriftStepSize) { ++results.nLostInDrift; continue; }
+        xs = x1; ys = y1; zs = z1; ts = t1;
+      }
+
       try {
-        ctx.avalanche->AvalancheElectron(x, y, z, t, 0.1, 0, 0, 0);
+        ctx.avalanche->AvalancheElectron(xs, ys, zs, ts, 0.1, 0, 0, 0);
       } catch (const Garfield::Exception& e) {
         // Thrown by AvalancheMicroscopic::TransportElectrons when the
         // starting point isn't inside a valid medium (e.g. a GEANT4
@@ -95,6 +122,11 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
             << "  ions: " << results.niTotal
             << "  drifted OK: " << results.nIonsDrifted
             << "  failed: " << results.nIonsFailed << "\n";
+  if (kUseHybridDrift) {
+    std::cout << "Hybrid drift: " << results.nOutsideMap
+              << " outside-map, " << results.nLostInDrift
+              << " lost in the drift gap (attachment/boundary).\n";
+  }
   if (nSkippedInvalidMedium > 0) {
     std::cout << "Skipped " << nSkippedInvalidMedium
               << " electron(s): starting point not in a valid medium.\n";

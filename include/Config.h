@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 namespace urwell {
@@ -27,10 +28,10 @@ inline constexpr bool kShowMeshPlot    = true;  // draw cMesh (geometry + drift 
 // This is convenient for single-point gain distributions, z-scans, or
 // repeated avalanche statistics without needing a full TrackHeed track.
 // ---------------------------------------------------------------------
-inline constexpr int kManualElectronCount = 10;
+inline constexpr int kManualElectronCount = 5;
 inline constexpr double kManualElectronX = 0.;
 inline constexpr double kManualElectronY = 0.;
-inline constexpr double kManualElectronZ0 = 0.01;
+inline constexpr double kManualElectronZ0 = 0.03;
 inline constexpr double kManualElectronDeltaZ = 0.;
 inline constexpr double kManualElectronT = 0.;
 
@@ -38,6 +39,18 @@ inline constexpr double kManualElectronT = 0.;
 // slower; only matters when kStoreDriftLines is true, but also affects
 // the granularity/cost of the ion transport integration itself.
 inline constexpr double kIonStepSize = 2.e-3;
+
+// ---------------------------------------------------------------------
+// Hybrid transport: AvalancheMC (tabulated transport) in the drift gap,
+// AvalancheMicroscopic from kZSwitch downwards (well / amplification).
+// kZSwitch [cm] must sit ABOVE the strong-field region, where the field
+// is still smooth. Read it off the cField plot. 0.02 is a placeholder.
+// kDriftStepSize [cm] must be much smaller than (kZSwitch - top of well).
+// ---------------------------------------------------------------------
+inline constexpr bool kUseHybridDrift = true;
+inline constexpr double kZSwitch = 0.01;
+inline constexpr double kDriftStepSize = 2.e-3;
+inline const std::string kGasTableFile = "/Users/alexandrosgardikioti/garfieldpp/urwell_v0_1/gas_files/settings_0/two_gas_mixtures/Ar_CO2_mixtures/Ar_CO2_80_20_NTP.gas";
 
 // ---------------------------------------------------------------------
 // Weighting field switch.
@@ -100,7 +113,7 @@ inline constexpr double kProgressIntervalSeconds = 30.;
 //            instead. Takes priority over kUseTrackHeed if both are true.
 //   false -> fall back to the existing kUseTrackHeed / manual behavior.
 // ---------------------------------------------------------------------
-inline constexpr bool kUseGeant4Hits = false;
+inline constexpr bool kUseGeant4Hits = true;
 
 // Path to the GEANT4 output ROOT file. Must contain a TTree named
 // "hits" with the branches geant_hits.h expects: event_id, track_id,

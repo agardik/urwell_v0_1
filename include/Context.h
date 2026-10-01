@@ -18,8 +18,10 @@ struct SimContext {
   Garfield::ComponentComsol* fmReal = nullptr;
   Garfield::MediumMagboltz* gas = nullptr;
   Garfield::Sensor* sensor = nullptr;
+  Garfield::Sensor* driftSensor = nullptr;      // area limited to z > kZSwitch
 
   Garfield::AvalancheMicroscopic* avalanche = nullptr;
+  Garfield::AvalancheMC* driftElectron = nullptr; // drift-gap electron transport
   Garfield::AvalancheMC* driftIon = nullptr;
   Garfield::ViewDrift* viewDrift = nullptr;  // only set if kStoreDriftLines
 
