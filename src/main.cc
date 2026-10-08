@@ -34,11 +34,13 @@ int main(int argc, char* argv[]) {
   if (kComputeAmplificationDistribution) {
     const GainHistogram gainHistogram = ComputeAmplificationDistribution(results);
     PrintAmplificationDistribution(gainHistogram);
+    PrintGainAndTransparency(results);
   }
 
   // ---- Plots and summary diagnostics ----
   if (kComputePlots) {
     if (kComputeGainHistogram) PlotAmplificationDistribution(results);
+    if (kComputeGainHistogram) PlotRawGainAndTransparency(results);
     if (kComputeDetectorPlots) {
       PlotMesh(ctx);
       PlotSignal(ctx);

@@ -82,6 +82,17 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
         continue;
       }
 
+      ++results.nTried;
+      bool entered = false;
+      const size_t nEnd = ctx.avalanche->GetNumberOfElectronEndpoints();
+      for (size_t j = 0; j < nEnd && !entered; ++j) {
+        double x0, y0, z0, t0, e0, x1, y1, z1, t1, e1;
+        int st = 0;
+        ctx.avalanche->GetElectronEndpoint(j, x0, y0, z0, t0, e0,
+                                           x1, y1, z1, t1, e1, st);
+        if (z1 < kWellEntryZ) entered = true;
+      }
+
       for (const auto& ion : ctx.avalanche->GetIons()) {
         const auto& p0 = ion.path.front();
         bool ok = ctx.driftIon->DriftIon(p0.x, p0.y, p0.z, p0.t);
@@ -90,6 +101,10 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
 
       int ne = 0, ni = 0;
       ctx.avalanche->GetAvalancheSize(ne, ni);
+      if (entered) {
+        ++results.nEntered;
+        results.gainsRaw.push_back(ne);
+      }
       results.neTotal += ne;
       results.niTotal += ni;
       results.gains.push_back(ne);

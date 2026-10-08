@@ -15,6 +15,9 @@ struct AvalancheResults {
   int nOutsideMap = 0;    // start point not in a valid drift region (hybrid mode)
   int nLostInDrift = 0;   // attached / never reached kZSwitch (hybrid mode)
   std::vector<int> gains;
+  std::vector<int> gainsRaw;  // avalanche size, only for electrons that entered the well
+  int nTried = 0;             // electrons actually avalanched (not lost in drift / invalid medium)
+  int nEntered = 0;           // of those, how many reached below kWellEntryZ
 };
 
 // Creates ctx.avalanche and ctx.driftIon (and ctx.viewDrift if

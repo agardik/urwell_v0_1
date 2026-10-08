@@ -72,4 +72,22 @@ void PrintAmplificationDistribution(const GainHistogram& histogram) {
   }
 }
 
+void PrintGainAndTransparency(const AvalancheResults& r) {
+  if (r.nTried == 0) {
+    std::cout << "No electrons were avalanched.\n";
+    return;
+  }
+  const double T = double(r.nEntered) / r.nTried;
+  const double Terr = std::sqrt(T * (1. - T) / r.nTried);  // binomial error
+  double sum = 0., sumSq = 0.;
+  for (int g : r.gainsRaw) { sum += g; sumSq += double(g) * g; }
+  const double n = r.gainsRaw.size();
+  const double G = n > 0 ? sum / n : 0.;
+  const double Gsig = n > 0 ? std::sqrt(std::max(0., sumSq / n - G * G)) : 0.;
+  std::cout << "Transparency: " << T << " +- " << Terr
+            << "  (" << r.nEntered << " / " << r.nTried << ")\n"
+            << "Raw gain (entered well): mean " << G << ", sigma " << Gsig << "\n"
+            << "Effective gain (T x G): " << T * G << "\n";
+}
+
 }  // namespace urwell

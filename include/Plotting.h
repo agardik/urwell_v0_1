@@ -12,6 +12,10 @@ namespace urwell {
 // visually in addition to the terminal summary.
 void PlotAmplificationDistribution(const AvalancheResults& results);
 
+// Raw gain distribution and transparency for only the avalanches that
+// entered the well.
+void PlotRawGainAndTransparency(const AvalancheResults& results);
+
 // 2D y-z cross section: mesh + avalanche overlaid. No-op unless
 // kShowMeshPlot is set.
 void PlotMesh(SimContext& ctx);

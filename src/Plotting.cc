@@ -10,12 +10,15 @@
 #include "TGraph.h"
 #include "TAxis.h"
 #include "TH1I.h"
+#include "TH1D.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TVectorD.h"
 #include "TNtuple.h"
+#include "TLatex.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -71,6 +74,38 @@ void PlotAmplificationDistribution(const AvalancheResults& results) {
   hGain->SetFillColorAlpha(kAzure - 3, 0.4);
   hGain->Draw("HIST");
   cGain->Update();
+}
+
+void PlotRawGainAndTransparency(const AvalancheResults& r) {
+  if (r.nTried == 0) return;
+
+  if (!r.gainsRaw.empty()) {
+    const auto mm = std::minmax_element(r.gainsRaw.begin(), r.gainsRaw.end());
+    const int nBins = std::max(10, std::min(60, *mm.second - *mm.first + 1));
+    TH1I* hRaw = new TH1I("hRawGain", "Raw gain (electrons that entered the well);Gain;Entries",
+                         nBins, *mm.first - 0.5, *mm.second + 0.5);
+    for (int g : r.gainsRaw) hRaw->Fill(g);
+    TCanvas* cRaw = new TCanvas("cRawGain", "Raw gain", 800, 600);
+    hRaw->SetLineColor(kRed + 1);
+    hRaw->SetFillColorAlpha(kRed - 9, 0.4);
+    hRaw->Draw("HIST");
+    cRaw->Update();
+  }
+
+  const double T = double(r.nEntered) / r.nTried;
+  const double Terr = std::sqrt(T * (1. - T) / r.nTried);
+  TH1D* hT = new TH1D("hTransparency", "Electron transparency;;Electrons", 2, 0, 2);
+  hT->GetXaxis()->SetBinLabel(1, "Collected outside well");
+  hT->GetXaxis()->SetBinLabel(2, "Entered well");
+  hT->SetBinContent(1, r.nTried - r.nEntered);
+  hT->SetBinContent(2, r.nEntered);
+  hT->SetFillColorAlpha(kGreen + 2, 0.4);
+  TCanvas* cT = new TCanvas("cTransparency", "Transparency", 800, 600);
+  hT->Draw("HIST");
+  TLatex* txt = new TLatex(0.15, 0.82, Form("T = %.3f #pm %.3f", T, Terr));
+  txt->SetNDC();
+  txt->Draw();
+  cT->Update();
 }
 
 void PlotMesh(SimContext& ctx) {
@@ -372,17 +407,35 @@ void WriteRootOutput(const AvalancheResults& results, SimContext& ctx,
   }
   tGain->Write();
 
+  TTree* tGainRaw = new TTree("gainRawTree", "Per-seed raw gain values for entered-well electrons");
+  int rawGain = 0;
+  tGainRaw->Branch("rawGain", &rawGain, "rawGain/I");
+  for (const int g : results.gainsRaw) {
+    rawGain = g;
+    tGainRaw->Fill();
+  }
+  tGainRaw->Write();
+
   TTree* tMeta = new TTree("meta", "Simulation metadata");
   int nGainEntries = static_cast<int>(results.gains.size());
   int nSignals = nSteps;
   double totalCharge = integratedCharge;
   double tStart = ctx.tStart;
   double tStop = ctx.tStop;
+  double transparency = results.nTried ? double(results.nEntered) / results.nTried : 0.;
+  double rawGainMean = 0.;
+  if (!results.gainsRaw.empty()) {
+    double sum = 0.;
+    for (int g : results.gainsRaw) sum += g;
+    rawGainMean = sum / results.gainsRaw.size();
+  }
   tMeta->Branch("nGainEntries", &nGainEntries, "nGainEntries/I");
   tMeta->Branch("nSignals", &nSignals, "nSignals/I");
   tMeta->Branch("totalCharge", &totalCharge, "totalCharge/D");
   tMeta->Branch("tStart", &tStart, "tStart/D");
   tMeta->Branch("tStop", &tStop, "tStop/D");
+  tMeta->Branch("transparency", &transparency, "transparency/D");
+  tMeta->Branch("rawGainMean", &rawGainMean, "rawGainMean/D");
   tMeta->Fill();
   tMeta->Write();
 

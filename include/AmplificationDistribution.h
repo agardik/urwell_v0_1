@@ -26,4 +26,8 @@ GainHistogram ComputeAmplificationDistribution(const AvalancheResults& results,
 // Print a compact summary of the gain histogram and a few representative bins.
 void PrintAmplificationDistribution(const GainHistogram& histogram);
 
+// Print transparency and raw-gain statistics for the subset of avalanches
+// that entered the well.
+void PrintGainAndTransparency(const AvalancheResults& r);
+
 }  // namespace urwell

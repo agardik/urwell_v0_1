@@ -40,6 +40,11 @@ inline constexpr double kManualElectronT = 0.;
 // the granularity/cost of the ion transport integration itself.
 inline constexpr double kIonStepSize = 2.e-3;
 
+// z [cm] a primary electron must get below to count as "entered the well".
+// Set it just BELOW the top surface of the top electrode (read it off the
+// mesh plot). 0.0 is a placeholder.
+inline constexpr double kWellEntryZ = 0.0045;
+
 // ---------------------------------------------------------------------
 // Hybrid transport: AvalancheMC (tabulated transport) in the drift gap,
 // AvalancheMicroscopic from kZSwitch downwards (well / amplification).
