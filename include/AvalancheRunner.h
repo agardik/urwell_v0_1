@@ -20,8 +20,10 @@ struct AvalancheResults {
   int nEntered = 0;           // of those, how many reached below kWellEntryZ
 };
 
-// Creates ctx.avalanche and ctx.driftIon (and ctx.viewDrift if
-// kStoreDriftLines is set) and wires up signal calculation on both.
+// Creates ctx.avalanche and, when kEnableIonSimulation is true, also
+// ctx.driftIon (and ctx.viewDrift if kStoreDriftLines is set). The ion
+// drift path can be disabled at runtime with --no-ion-simulation to keep
+// only the electron avalanche path.
 // Call once, after SetupDetector and before RunAvalancheLoop.
 void SetupAvalanche(SimContext& ctx);
 
