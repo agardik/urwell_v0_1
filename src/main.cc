@@ -1,5 +1,7 @@
 #include "TApplication.h"
 
+#include <iostream>
+
 #include "Config.h"
 #include "Context.h"
 #include "DetectorSetup.h"
@@ -11,6 +13,25 @@
 using namespace urwell;
 
 int main(int argc, char* argv[]) {
+  for (int i = 1; i < argc; ++i) {
+    const std::string arg = argv[i];
+    if (arg == "--ion-simulation" || arg == "--with-ions" || arg == "--ions") {
+      kEnableIonSimulation = true;
+    } else if (arg == "--no-ion-simulation" || arg == "--without-ions" ||
+               arg == "--no-ions" || arg == "--electron-only") {
+      kEnableIonSimulation = false;
+    } else if (arg.rfind("--ion-simulation=", 0) == 0) {
+      const std::string value = arg.substr(std::string("--ion-simulation=").size());
+      kEnableIonSimulation = (value == "1" || value == "true" || value == "yes" || value == "on");
+    } else if (arg == "--help" || arg == "-h") {
+      std::cout << "Usage: urwell [--ion-simulation[=true|false]|--no-ion-simulation]\n"
+                << "  --ion-simulation      enable ion drift and ion signal simulation (default)\n"
+                << "  --no-ion-simulation   skip ion drift, leaving only electron avalanches\n"
+                << "  --ion-simulation=false disable ion drift while keeping the electron avalanche path\n";
+      return 0;
+    }
+  }
+
   TApplication app("app", &argc, argv);
 
   SimContext ctx;

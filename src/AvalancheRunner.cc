@@ -23,13 +23,16 @@ void SetupAvalanche(SimContext& ctx) {
     avalanche->EnablePlotting(viewDrift);
   }
 
-  AvalancheMC* driftIon = new AvalancheMC();
-  driftIon->SetSensor(ctx.sensor);
-  driftIon->SetDistanceSteps(kIonStepSize);
-  driftIon->EnableSignalCalculation();
-  if (shouldStoreDriftLines) {
-    driftIon->EnableDriftLines();
-    driftIon->EnablePlotting(viewDrift);  // reuse the SAME ViewDrift -> ions show on same plot
+  AvalancheMC* driftIon = nullptr;
+  if (kEnableIonSimulation) {
+    driftIon = new AvalancheMC();
+    driftIon->SetSensor(ctx.sensor);
+    driftIon->SetDistanceSteps(kIonStepSize);
+    driftIon->EnableSignalCalculation();
+    if (shouldStoreDriftLines) {
+      driftIon->EnableDriftLines();
+      driftIon->EnablePlotting(viewDrift);  // reuse the SAME ViewDrift -> ions show on same plot
+    }
   }
 
   AvalancheMC* driftEl = nullptr;
@@ -93,10 +96,12 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
         if (z1 < kWellEntryZ) entered = true;
       }
 
-      for (const auto& ion : ctx.avalanche->GetIons()) {
-        const auto& p0 = ion.path.front();
-        bool ok = ctx.driftIon->DriftIon(p0.x, p0.y, p0.z, p0.t);
-        if (ok) ++results.nIonsDrifted; else ++results.nIonsFailed;
+      if (kEnableIonSimulation && ctx.driftIon) {
+        for (const auto& ion : ctx.avalanche->GetIons()) {
+          const auto& p0 = ion.path.front();
+          bool ok = ctx.driftIon->DriftIon(p0.x, p0.y, p0.z, p0.t);
+          if (ok) ++results.nIonsDrifted; else ++results.nIonsFailed;
+        }
       }
 
       int ne = 0, ni = 0;
