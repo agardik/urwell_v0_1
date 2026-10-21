@@ -253,9 +253,35 @@ void PlotFields(SimContext& ctx) {
   viewField->SetPlane(0, -1, 0, 0, 0, 0);
   viewField->SetArea(-140e-4, -200.1e-5, 140e-4, 800.1e-4);
 
-  TCanvas* cField = new TCanvas("cField", "Electric field |E| (z-x, y=0)", 800, 800);
+  TCanvas* cField = new TCanvas("cField", "Electric field + detector mesh (z-x, y=0)", 800, 800);
   viewField->SetCanvas(cField);
   viewField->PlotContour("v");
+
+  std::vector<double> x0, y0, z0;
+  const double zStart = 1.35e-2;
+  const double xMin = -1.2e-2;
+  const double xMax = 1.2e-2;
+  for (double x = xMin; x <= xMax + 1e-6; x += 2.5e-4) {
+    x0.push_back(x);
+    y0.push_back(0.0);
+    z0.push_back(zStart);
+  }
+  // Draw the actual field lines, then overlay the detector mesh on the same canvas.
+  viewField->PlotFieldLines(x0, y0, z0, true, false);
+
+  ViewFEMesh* viewMesh = new ViewFEMesh();
+  viewMesh->SetComponent(ctx.fmReal);
+  viewMesh->SetPlane(0, -1, 0, 0, 0, 0);
+  viewMesh->SetArea(-140e-4, -200.1e-5, 140e-4, 800.1e-4);
+  viewMesh->SetFillMesh(true);
+  viewMesh->SetCanvas(cField);
+  if (ctx.viewDrift) viewMesh->SetViewDrift(ctx.viewDrift);
+  viewMesh->SetColor(0, kCyan);
+  viewMesh->SetColor(1, kYellow);
+  viewMesh->SetColor(2, kGray + 2);
+  viewMesh->SetColor(3, kGreen + 2);
+  viewMesh->SetColor(4, kOrange + 7);
+  viewMesh->Plot(true);
   cField->Update();
 
   ViewField* viewWeight = new ViewField();
@@ -415,6 +441,44 @@ void WriteRootOutput(const AvalancheResults& results, SimContext& ctx,
     tGainRaw->Fill();
   }
   tGainRaw->Write();
+
+  // Per-electron position + gain, for gain-vs-position studies (positions in cm).
+  TTree* tGainPos = new TTree("gainPosTree", "Per-electron gain with seed and avalanche-start position");
+  double xSeed = 0., ySeed = 0., zSeed = 0., xStart = 0., yStart = 0., zStart = 0.;
+  int posGain = 0, posEntered = 0;
+  tGainPos->Branch("xSeed", &xSeed, "xSeed/D");
+  tGainPos->Branch("ySeed", &ySeed, "ySeed/D");
+  tGainPos->Branch("zSeed", &zSeed, "zSeed/D");
+  tGainPos->Branch("xStart", &xStart, "xStart/D");
+  tGainPos->Branch("yStart", &yStart, "yStart/D");
+  tGainPos->Branch("zStart", &zStart, "zStart/D");
+  tGainPos->Branch("gain", &posGain, "gain/I");
+  tGainPos->Branch("entered", &posEntered, "entered/I");
+  for (const auto& rec : results.records) {
+    xSeed = rec.xSeed;   ySeed = rec.ySeed;   zSeed = rec.zSeed;
+    xStart = rec.xStart; yStart = rec.yStart; zStart = rec.zStart;
+    posGain = rec.gain;  posEntered = rec.entered;
+    tGainPos->Fill();
+  }
+  tGainPos->Write();
+
+  // Per-avalanche endpoint summary: where the electrons stopped (z bins) and their status codes.
+  TTree* tEnd = new TTree("endpointTree", "Per-avalanche electron endpoint summary");
+  int endGain = 0, endEntered = 0;
+  short endZ[kEndZBins] = {};
+  short endStatus[kEndStatusBins] = {};
+  tEnd->Branch("gain", &endGain, "gain/I");
+  tEnd->Branch("entered", &endEntered, "entered/I");
+  tEnd->Branch("endZ", endZ, ("endZ[" + std::to_string(kEndZBins) + "]/S").c_str());
+  tEnd->Branch("endStatus", endStatus, ("endStatus[" + std::to_string(kEndStatusBins) + "]/S").c_str());
+  for (const auto& rec : results.endRecords) {
+    endGain = rec.gain;
+    endEntered = rec.entered;
+    std::copy(rec.endZ, rec.endZ + kEndZBins, endZ);
+    std::copy(rec.endStatus, rec.endStatus + kEndStatusBins, endStatus);
+    tEnd->Fill();
+  }
+  tEnd->Write();
 
   TTree* tMeta = new TTree("meta", "Simulation metadata");
   int nGainEntries = static_cast<int>(results.gains.size());

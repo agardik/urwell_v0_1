@@ -2,6 +2,8 @@
 #include "ProgressBar.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 
@@ -113,6 +115,25 @@ AvalancheResults RunAvalancheLoop(SimContext& ctx,
       results.neTotal += ne;
       results.niTotal += ni;
       results.gains.push_back(ne);
+      results.records.push_back({x, y, z, xs, ys, zs, ne, entered ? 1 : 0});
+
+      // Endpoint summary of this avalanche: z-histogram of where the electrons stopped, and
+      // how many stopped with each status code.
+      EndpointRecord er{};   // zero-initialised
+      er.gain = ne;
+      er.entered = entered ? 1 : 0;
+      for (size_t j = 0; j < nEnd; ++j) {
+        double x0, y0, z0, t0, e0, x1, y1, z1, t1, e1;
+        int st = 0;
+        ctx.avalanche->GetElectronEndpoint(j, x0, y0, z0, t0, e0,
+                                           x1, y1, z1, t1, e1, st);
+        int bz = static_cast<int>(std::floor((z1 - kEndZMin) / (kEndZMax - kEndZMin) * kEndZBins));
+        bz = std::min(std::max(bz, 0), kEndZBins - 1);
+        ++er.endZ[bz];
+        const int bs = std::min(std::abs(st), kEndStatusBins - 1);
+        ++er.endStatus[bs];
+      }
+      results.endRecords.push_back(er);
     }
   };
 

@@ -63,12 +63,12 @@ int main(int argc, char* argv[]) {
     if (kComputeGainHistogram) PlotAmplificationDistribution(results);
     if (kComputeGainHistogram) PlotRawGainAndTransparency(results);
     if (kComputeDetectorPlots) {
-      PlotMesh(ctx);
+      //PlotMesh(ctx);
       PlotSignal(ctx);
       PlotElectronIonSignals(ctx);
       PlotDelayedSignal(ctx);
       PlotIntegratedCharge(ctx);
-      PlotFields(ctx);
+      //PlotFields(ctx);
       PrintDelayedSignalSummary(ctx);
     }
   }

@@ -7,7 +7,34 @@
 
 namespace urwell {
 
+// One entry per avalanched electron: where it was seeded, where the microscopic
+// avalanche actually started (after the hybrid drift), its gain, and whether it
+// entered the well. Positions in cm.
+struct GainRecord {
+  double xSeed, ySeed, zSeed;
+  double xStart, yStart, zStart;
+  int gain;
+  int entered;
+};
+
+// Where the electrons of one avalanche ended up. Per avalanche (not per electron), so the file stays small:
+//   endZ[b]      = number of electron endpoints with z1 in z-bin b of [kEndZMin, kEndZMax] (cm)
+//   endStatus[s] = number of electron endpoints with |status| == s (s clamped to kEndStatusBins-1)
+inline constexpr int kEndZBins = 30;
+inline constexpr double kEndZMin = -0.02;   // cm (bottom of the sensor area)
+inline constexpr double kEndZMax = 0.01;    // cm (= kZSwitch)
+inline constexpr int kEndStatusBins = 16;
+
+struct EndpointRecord {
+  int gain;
+  int entered;
+  short endZ[kEndZBins];
+  short endStatus[kEndStatusBins];
+};
+
 struct AvalancheResults {
+  std::vector<EndpointRecord> endRecords;  // per-avalanche endpoint summary (written to endpointTree)
+  std::vector<GainRecord> records;  // per-electron position + gain (written to gainPosTree)
   int neTotal = 0;
   int niTotal = 0;
   int nIonsDrifted = 0;

@@ -19,11 +19,11 @@ namespace urwell {
 // ---------------------------------------------------------------------
 inline constexpr bool kComputePlots = true;
 inline constexpr bool kComputeGainHistogram = true;
-inline constexpr bool kComputeDetectorPlots = false;
+inline constexpr bool kComputeDetectorPlots = true;
 inline constexpr bool kComputeAmplificationDistribution = true;
-inline constexpr bool kStoreDriftLines = false;  // EnableDriftLines() on avalanche + ion drift
-inline constexpr bool kShowMeshPlot    = false;  // draw cMesh (geometry + drift lines)
-inline bool kEnableIonSimulation = false;
+inline constexpr bool kStoreDriftLines = true;  // EnableDriftLines() on avalanche + ion drift
+inline constexpr bool kShowMeshPlot    = true;  // draw cMesh (geometry + drift lines)
+inline bool kEnableIonSimulation = true;
 
 // ---------------------------------------------------------------------
 // Manual electron generation for gain studies.
@@ -32,10 +32,10 @@ inline bool kEnableIonSimulation = false;
 // This is convenient for single-point gain distributions, z-scans, or
 // repeated avalanche statistics without needing a full TrackHeed track.
 // ---------------------------------------------------------------------
-inline constexpr int kManualElectronCount = 1000000;
+inline constexpr int kManualElectronCount = 1;
 inline constexpr double kManualElectronX = 0.;
 inline constexpr double kManualElectronY = 0.;
-inline constexpr double kManualElectronZ0 = 0.006;
+inline constexpr double kManualElectronZ0 = 0.01;
 inline constexpr double kManualElectronDeltaZ = 0.;
 inline constexpr double kManualElectronT = 0.;
 
@@ -47,7 +47,7 @@ inline constexpr double kIonStepSize = 2.e-3;
 // z [cm] a primary electron must get below to count as "entered the well".
 // Set it just BELOW the top surface of the top electrode (read it off the
 // mesh plot). 0.0 is a placeholder.
-inline constexpr double kWellEntryZ = 2.0e-10;
+inline constexpr double kWellEntryZ = 2.e-10;
 
 // ---------------------------------------------------------------------
 // Hybrid transport: AvalancheMC (tabulated transport) in the drift gap,
@@ -122,7 +122,7 @@ inline constexpr double kProgressIntervalSeconds = 30.;
 //            instead. Takes priority over kUseTrackHeed if both are true.
 //   false -> fall back to the existing kUseTrackHeed / manual behavior.
 // ---------------------------------------------------------------------
-inline constexpr bool kUseGeant4Hits = false;
+inline constexpr bool kUseGeant4Hits = true;
 
 // Path to the GEANT4 output ROOT file. Must contain a TTree named
 // "hits" with the branches geant_hits.h expects: event_id, track_id,
